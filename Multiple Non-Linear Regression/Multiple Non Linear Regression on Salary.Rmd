@@ -1,0 +1,226 @@
+---
+title: "Multiple Non-Linear Regression Analysis: Salary Data"
+author: "Cailey"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+## Loading Data and Libraries
+
+```{r load-data}
+library(corrplot)
+
+df <- read.csv("C:/Users/Cailey/OneDrive - University of South Florida/USF/Spring 26/Stats 2/Regressions/Multiple Linear Regression/Data/Salary.csv")
+head(df)
+```
+
+---
+
+## 1. Correlation Matrix
+
+```{r correlation-matrix, fig.align='center'}
+correlation <- cor(df)
+print(round(correlation, 3))
+
+corrplot(correlation,
+         method = "circle",
+         type   = "upper",
+         tl.col = "black",
+         tl.srt = 45,
+         title  = "Correlation Matrix",
+         mar    = c(0, 0, 1, 0))
+```
+
+### Interpretation
+
+The correlation matrix quantifies the linear relationship between each pair of variables on a scale from -1 to +1.
+
+- **Salary & Employment (r = 0.824):** Strong positive correlation — the strongest among all predictors. Employees with more years of employment tend to earn notably higher salaries.
+- **Salary & Education (r = 0.375):** Moderate positive correlation. More years of education is associated with higher salary, though the relationship is weaker than employment tenure.
+- **Salary & Experience (r = 0.189):** Weak positive correlation. Work experience has the weakest linear association with salary among the three predictors in this dataset.
+- **Experience & Education (r = 0.645):** Moderate positive correlation between these two predictors, meaning individuals with more education also tend to have more work experience in this sample.
+- **Employment & Experience (r = -0.310):** A mild negative correlation, which is somewhat unexpected but may be an artifact of the small sample size (n = 8).
+- **Employment & Education (r = -0.108):** Essentially no linear relationship between employment tenure and education level.
+
+---
+
+## 2. Scatter Plots
+
+```{r scatter-plots, fig.align='center'}
+par(mfrow = c(1, 3), mar = c(4, 4, 3, 1))
+
+plot(df$Education..in.years., df$Salary,
+     main = "Salary vs. Education",
+     xlab = "Education (in years)",
+     ylab = "Salary ($)",
+     pch  = 16, col = "steelblue")
+abline(lm(Salary ~ Education..in.years., data = df), col = "red", lwd = 2)
+
+plot(df$Experience..in.years., df$Salary,
+     main = "Salary vs. Experience",
+     xlab = "Experience (in years)",
+     ylab = "Salary ($)",
+     pch  = 16, col = "steelblue")
+abline(lm(Salary ~ Experience..in.years., data = df), col = "red", lwd = 2)
+
+plot(df$Employment..in.years., df$Salary,
+     main = "Salary vs. Employment",
+     xlab = "Employment (in years)",
+     ylab = "Salary ($)",
+     pch  = 16, col = "steelblue")
+abline(lm(Salary ~ Employment..in.years., data = df), col = "red", lwd = 2)
+
+par(mfrow = c(1, 1))
+```
+
+### Interpretation
+
+- **Salary vs. Education:** Data points span education levels of 12 to 18 years. The trend line has a mild positive slope, but the scatter is wide. Notably, one individual with only 12 years of education earns over $60,000, which works against the trend. Education alone appears to be a weak predictor of salary in this sample.
+- **Salary vs. Experience:** Experience ranges from 0 to 8 years. While the trend line is positive, the individual with 0 years of experience earns the highest salary ($60,620), which contradicts the expected direction and contributes to high variability. This suggests experience alone does not reliably predict salary here.
+- **Salary vs. Employment:** This plot shows the clearest and most consistent upward trend. As employment tenure increases from 3 to 20 years, salary rises fairly steadily from ~$54,135 to ~$60,620. Points track closer to the trend line than in the other two plots, reinforcing that employment duration is the strongest individual predictor of salary in this dataset.
+
+---
+
+## 3. Polynomial (Quadratic) Regression Model
+
+```{r poly-model}
+model_poly <- lm(Salary ~ poly(Employment..in.years., 2) +
+                           poly(Experience..in.years., 2) +
+                           poly(Education..in.years., 2),
+                 data = df)
+summary(model_poly)
+
+cat("Polynomial R-squared:         ", round(summary(model_poly)$r.squared, 4), "\n")
+cat("Polynomial Adjusted R-squared:", round(summary(model_poly)$adj.r.squared, 4), "\n")
+
+rmse_poly <- sqrt(mean(residuals(model_poly)^2))
+cat("Polynomial RMSE: $", round(rmse_poly, 2), "\n")
+```
+
+### Interpretation
+
+The polynomial model adds quadratic (squared) terms for each predictor, allowing the relationship between each variable and salary to follow a curved rather than strictly straight line.
+
+**Significance of Predictors:**
+
+- **Employment (linear term, p = 0.130):** The linear component of employment is the closest to significance among all predictors, though it does not reach the α = 0.05 threshold. Its large positive coefficient (5,525.5) reflects the strong upward trend seen in the scatter plot.
+- **Employment (quadratic term, p = 0.709):** The curved component of employment is not significant, suggesting the relationship between employment and salary is better described as roughly linear rather than curved.
+- **Experience (linear, p = 0.396) and quadratic (p = 0.837):** Neither term for experience is significant, consistent with its weak correlation with salary.
+- **Education (linear, p = 0.633) and quadratic (p = 0.694):** Neither term for education is significant either, again consistent with the weak individual relationship seen in the scatter plot.
+
+**Overall Model Significance:**
+
+The F-statistic is 6.635 on 6 and 1 degrees of freedom, with a p-value of 0.2888. The model as a whole is **not statistically significant** at α = 0.05. With 6 predictors and only 8 observations, there is only 1 degree of freedom remaining for error, which severely limits the model's ability to detect significance. This is a direct consequence of the very small sample size.
+
+**R², Adjusted R², and RMSE:**
+
+- **R² = 0.9755:** The polynomial model explains 97.55% of the variation in salary — higher than the linear model's 94.38%.
+- **Adjusted R² = 0.8285:** After penalizing for the 6 parameters, adjusted R² drops to 82.85%, which is lower than the linear model's adjusted R² of 90.17%. This suggests the additional quadratic terms are not genuinely improving the model and may be overfitting the data.
+- **RMSE = $308.01:** On average, the polynomial model's predictions deviate from actual salaries by $308.01 — better than the linear model's ~$659, though this improvement is likely inflated by overfitting given the near-saturated degrees of freedom.
+
+```{r poly-fitted, fig.align='center'}
+df$Fitted_poly <- fitted(model_poly)
+
+plot(df$Fitted_poly, df$Salary,
+     main = "Actual vs. Fitted (Polynomial)",
+     xlab = "Fitted Values ($)",
+     ylab = "Actual Salary ($)",
+     pch  = 16, col = "steelblue")
+abline(a = 0, b = 1, col = "red", lwd = 2, lty = 2)
+legend("topleft", legend = "Perfect Fit Line", col = "red", lty = 2, lwd = 2)
+```
+
+```{r poly-diagnostics, fig.align='center'}
+par(mfrow = c(2, 2))
+plot(model_poly)
+par(mfrow = c(1, 1))
+```
+
+---
+
+## 4. Log Transformation Regression Model
+
+```{r log-model}
+# Experience + 1 to avoid log(0) since one observation has 0 years of experience
+df$log_Employment <- log(df$Employment..in.years.)
+df$log_Experience <- log(df$Experience..in.years. + 1)
+df$log_Education  <- log(df$Education..in.years.)
+
+model_log <- lm(Salary ~ log_Employment + log_Experience + log_Education,
+                data = df)
+summary(model_log)
+
+cat("Log R-squared:         ", round(summary(model_log)$r.squared, 4), "\n")
+cat("Log Adjusted R-squared:", round(summary(model_log)$adj.r.squared, 4), "\n")
+
+rmse_log <- sqrt(mean(residuals(model_log)^2))
+cat("Log RMSE: $", round(rmse_log, 2), "\n")
+```
+
+### Interpretation
+
+The log transformation model replaces each predictor with its natural log, capturing diminishing returns — meaning each additional year of employment, experience, or education has a progressively smaller effect on salary.
+
+**Significance of Predictors:**
+
+- **log(Employment) (p = 0.00755, \*\*):** Statistically significant at α = 0.05. For every 1% increase in employment tenure, salary is estimated to increase by approximately $33.77. Employment remains the dominant predictor of salary even after log transformation.
+- **log(Experience + 1) (p = 0.463):** Not statistically significant. Experience does not independently explain salary variation once employment and education are accounted for.
+- **log(Education) (p = 0.867):** Not statistically significant. Education contributes very little unique explanatory power in this model.
+
+**Overall Model Significance:**
+
+The F-statistic is 11.42 on 3 and 4 degrees of freedom, with a p-value of 0.01977. The log model is **statistically significant** overall at α = 0.05, meaning the three log-transformed predictors together explain a significant portion of salary variation.
+
+**R², Adjusted R², and RMSE:**
+
+- **R² = 0.8955:** The log model explains 89.55% of salary variation.
+- **Adjusted R² = 0.817:** After adjusting for the number of predictors, the log model retains 81.7% explanatory power — lower than the linear model (90.17%) and the polynomial model (82.85%).
+- **RMSE = $636.20:** On average, predictions deviate from actual salaries by $636.20, which is comparable to the linear model and notably worse than the polynomial model.
+
+```{r log-fitted, fig.align='center'}
+df$Fitted_log <- fitted(model_log)
+
+plot(df$Fitted_log, df$Salary,
+     main = "Actual vs. Fitted (Log)",
+     xlab = "Fitted Values ($)",
+     ylab = "Actual Salary ($)",
+     pch  = 16, col = "darkorange")
+abline(a = 0, b = 1, col = "red", lwd = 2, lty = 2)
+legend("topleft", legend = "Perfect Fit Line", col = "red", lty = 2, lwd = 2)
+```
+
+```{r log-diagnostics, fig.align='center'}
+par(mfrow = c(2, 2))
+plot(model_log)
+par(mfrow = c(1, 1))
+```
+
+---
+
+## 5. Model Comparison
+
+```{r model-comparison}
+cat("Model Comparison:\n")
+cat("                   R-squared   Adj. R-squared   RMSE\n")
+cat("Polynomial Model: ", round(summary(model_poly)$r.squared, 4), "      ",
+    round(summary(model_poly)$adj.r.squared, 4), "         $",
+    round(rmse_poly, 2), "\n")
+cat("Log Model:        ", round(summary(model_log)$r.squared, 4), "      ",
+    round(summary(model_log)$adj.r.squared, 4), "         $",
+    round(rmse_log, 2), "\n")
+```
+
+### Interpretation
+
+| Model      | R²     | Adjusted R² | RMSE     |
+|------------|--------|-------------|----------|
+| Polynomial | 0.9755 | 0.8285      | $308.01  |
+| Log        | 0.8955 | 0.8170      | $636.20  |
+
+The polynomial model achieves a higher R² and lower RMSE, suggesting better raw fit to the data. However, its adjusted R² is only marginally better than the log model (0.8285 vs. 0.8170), and the polynomial model is not statistically significant overall (p = 0.2888) compared to the log model (p = 0.01977). The polynomial model's apparent accuracy is likely inflated by overfitting — with 6 parameters and only 8 observations, there is only 1 degree of freedom left for error estimation.
+
+The **log model is the more reliable choice** for this dataset. It is statistically significant, maintains a reasonable adjusted R², and correctly identifies log(Employment) as the only significant predictor — consistent with all prior analyses. With a larger sample size, both models could be evaluated more conclusively.
