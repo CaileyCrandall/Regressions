@@ -1,0 +1,179 @@
+---
+title: "Multiple Linear Regression Analysis: Salary Data"
+author: "Cailey"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+## Loading Data and Libraries
+
+```{r load-data}
+library(corrplot)
+
+df <- read.csv("C:/Users/Cailey/OneDrive - University of South Florida/USF/Spring 26/Stats 2/Regressions/Multiple Linear Regression/Data/Salary.csv")
+head(df)
+```
+
+---
+
+## 1. Correlation Matrix
+
+```{r correlation-matrix, fig.align='center'}
+correlation <- cor(df)
+print(round(correlation, 3))
+
+corrplot(correlation,
+         method = "circle",
+         type   = "upper",
+         tl.col = "black",
+         tl.srt = 45,
+         title  = "Correlation Matrix",
+         mar    = c(0, 0, 1, 0))
+```
+
+### Interpretation
+
+The correlation matrix quantifies the linear relationship between each pair of variables on a scale from -1 to +1.
+
+- **Salary & Employment (in years):** This is the strongest positive correlation among the predictors. Employees with more years of employment tend to earn noticeably higher salaries, and this relationship is visually confirmed by the large, dark blue circle in the plot.
+- **Salary & Experience (in years):** A weak-to-moderate positive correlation exists between experience and salary. While the direction is positive, the relationship is less consistent than employment tenure.
+- **Salary & Education (in years):** Education shows the weakest correlation with salary among the three predictors, suggesting that in this dataset, years of schooling alone has a limited linear association with earnings.
+- **Employment & Experience:** These two predictors show a mild negative correlation, which is somewhat counterintuitive but may reflect the small sample size (n = 8). It is worth noting as a potential multicollinearity consideration.
+- **Experience & Education:** A moderate positive correlation exists here, meaning individuals with more education tend to also have more work experience in this sample.
+
+---
+
+## 2. Scatter Plots
+
+```{r scatter-plots, fig.align='center'}
+par(mfrow = c(1, 3), mar = c(4, 4, 3, 1))
+
+plot(df$Education..in.years., df$Salary,
+     main = "Salary vs. Education",
+     xlab = "Education (in years)",
+     ylab = "Salary ($)",
+     pch  = 16, col = "steelblue")
+abline(lm(Salary ~ Education..in.years., data = df), col = "red", lwd = 2)
+
+plot(df$Experience..in.years., df$Salary,
+     main = "Salary vs. Experience",
+     xlab = "Experience (in years)",
+     ylab = "Salary ($)",
+     pch  = 16, col = "steelblue")
+abline(lm(Salary ~ Experience..in.years., data = df), col = "red", lwd = 2)
+
+plot(df$Employment..in.years., df$Salary,
+     main = "Salary vs. Employment",
+     xlab = "Employment (in years)",
+     ylab = "Salary ($)",
+     pch  = 16, col = "steelblue")
+abline(lm(Salary ~ Employment..in.years., data = df), col = "red", lwd = 2)
+
+par(mfrow = c(1, 1))
+```
+
+### Interpretation
+
+Each scatter plot displays the relationship between Salary and one predictor individually, with a simple linear regression trend line overlaid in red.
+
+- **Salary vs. Education:** The data points are spread across education levels of 12, 14, 16, and 18 years. The trend line has a slight positive slope, but the scatter is wide — one individual with only 12 years of education earns over $60,000, while another with 16 years earns around $57,000. This inconsistency suggests education alone is a weak predictor of salary in this sample.
+- **Salary vs. Experience:** Experience ranges from 0 to 8 years. The trend line is positive but the points deviate noticeably from it. The individual with 0 years of experience earns the highest salary (~$60,620), which pulls against the expected positive trend and contributes to high variability around the line.
+- **Salary vs. Employment:** This plot shows the clearest upward trend. As employment tenure increases from roughly 3 to 20 years, salary rises fairly consistently from ~$54,135 to ~$60,620. The points track closer to the trend line than in the other two plots, reinforcing that employment duration is the strongest individual predictor of salary in this dataset.
+
+---
+
+## 3. Multiple Linear Regression Model
+
+```{r mlr-model}
+model <- lm(Salary ~ Employment..in.years. + Experience..in.years. + Education..in.years.,
+            data = df)
+summary(model)
+```
+
+### Significance of the Independent Variables
+
+The model equation is:
+
+$$\hat{Salary} = 49{,}764.45 + 364.41(\text{Employment}) + 227.62(\text{Experience}) + 266.94(\text{Education})$$
+
+- **Employment (in years) — p = 0.00166 (\*\*):** Employment tenure is the only statistically significant predictor at the α = 0.05 level. For each additional year of employment, salary is estimated to increase by **$364.41**, holding experience and education constant. The small p-value (0.00166) gives strong evidence that this relationship is not due to chance.
+- **Experience (in years) — p = 0.13991:** Experience is not statistically significant at the α = 0.05 level. While the positive coefficient ($227.62 per year) suggests a meaningful direction, the high p-value indicates we do not have sufficient evidence to conclude experience independently predicts salary when the other variables are controlled for. This may partly reflect the small sample size of n = 8.
+- **Education (in years) — p = 0.14430:** Education is also not statistically significant at the α = 0.05 level. Each additional year of education is associated with a $266.94 increase in salary, but again, the p-value is too large to rule out sampling variability as the cause. Like experience, the limited sample size reduces the power to detect this effect.
+
+### Significance of the Overall Model (F-statistic)
+
+The F-statistic is **22.4** on 3 and 4 degrees of freedom, with a p-value of **0.005804**. Since p < 0.05, the model as a whole is **statistically significant** — meaning that together, employment, experience, and education explain a significant portion of the variation in salary, even though not every individual predictor reaches significance on its own.
+
+### R² and Adjusted R²
+
+```{r r-squared}
+cat("R-squared:         ", round(summary(model)$r.squared, 4), "\n")
+cat("Adjusted R-squared:", round(summary(model)$adj.r.squared, 4), "\n")
+```
+
+- **R² = 0.9438:** The model explains **94.38%** of the total variation in salary. This is a very high value, indicating the three predictors together account for nearly all of the salary differences observed across the 8 employees.
+- **Adjusted R² = 0.9017:** After penalizing for the number of predictors (3) relative to the sample size (8), the adjusted R² is **90.17%**. The fact that adjusted R² remains high and close to R² suggests the predictors are genuinely contributing to the model rather than artificially inflating fit. However, results should be interpreted cautiously given the very small sample size.
+
+### Root Mean Square Error (RMSE)
+
+```{r rmse}
+rmse <- sqrt(mean(residuals(model)^2))
+cat("RMSE: $", round(rmse, 2), "\n")
+```
+
+The residual standard error from the model output is **$659.50**, and the RMSE is similarly in that range. This means that, on average, the model's salary predictions deviate from the actual salaries by approximately **$659.50**. Given that salaries in this dataset range from roughly $54,135 to $62,350 — a spread of about $8,200 — an average error of ~$660 represents strong predictive accuracy (roughly 8% of the total range).
+
+---
+
+## 4. Fitted Values Plot
+
+```{r fitted-plot, fig.align='center'}
+df$Fitted <- fitted(model)
+
+plot(df$Fitted, df$Salary,
+     main = "Actual vs. Fitted Salary Values",
+     xlab = "Fitted Values ($)",
+     ylab = "Actual Salary ($)",
+     pch  = 16, col = "steelblue")
+abline(a = 0, b = 1, col = "red", lwd = 2, lty = 2)
+legend("topleft", legend = "Perfect Fit Line", col = "red", lty = 2, lwd = 2)
+```
+
+### Interpretation
+
+This plot compares the model's predicted (fitted) salary values on the x-axis to the actual salaries on the y-axis. The dashed red line represents a perfect prediction where fitted = actual.
+
+The residuals from the model output show the deviations for each of the 8 observations: -824.76, 156.82, -153.52, 158.90, -56.65, 364.09, 804.95, and -449.82. Most points fall close to the perfect fit line, with the largest deviations being observations 1 and 7 (residuals of -825 and +805 respectively). The overall tight clustering around the line is consistent with the high R² of 0.9438, confirming the model captures the pattern in the data well.
+
+---
+
+## 5. Multiple Linear Regression with Interaction Terms
+
+```{r interaction-model}
+model_interact <- lm(Salary ~ Employment..in.years. * Experience..in.years. +
+                               Employment..in.years. * Education..in.years. +
+                               Experience..in.years. * Education..in.years.,
+                     data = df)
+summary(model_interact)
+```
+
+### What Are Interaction Terms?
+
+An interaction term tests whether the effect of one predictor on salary **depends on the level of another predictor**. For example:
+
+- **Employment × Experience:** Tests whether the salary return on an additional year of employment differs depending on how much experience a person has. A highly experienced, long-tenured employee might earn disproportionately more than what each variable predicts alone.
+- **Employment × Education:** Tests whether employment tenure's salary effect differs across education levels — for instance, whether a college-educated employee benefits more per year of tenure than a high school graduate.
+- **Experience × Education:** Tests whether the salary payoff from work experience is amplified or diminished depending on education level.
+
+### Significance of the Interaction Terms and Model
+
+```{r interact-summary}
+cat("Interaction Model R-squared:         ", round(summary(model_interact)$r.squared, 4), "\n")
+cat("Interaction Model Adjusted R-squared:", round(summary(model_interact)$adj.r.squared, 4), "\n")
+```
+
+> **Note:** With only 8 observations and 6 total parameters (3 main effects + 3 interaction terms), this model is at or near saturation — meaning there are very few degrees of freedom left for error estimation. As a result, p-values for individual interaction terms should be interpreted with great caution. If the adjusted R² of the interaction model is lower than the main effects model (0.9017), this is a sign that the interaction terms are over-fitting the data rather than capturing genuine relationships. In a larger dataset, these interaction terms would be worth exploring more rigorously.
