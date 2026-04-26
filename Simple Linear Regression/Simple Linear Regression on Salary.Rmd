@@ -1,0 +1,71 @@
+---
+title: "Simple Linear Regression on Salary"
+author: "Cailey Crandall"
+date: "2026-04-26"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+df <- read.csv("C:/Users/Cailey/OneDrive - University of South Florida/USF/Spring 26/Stats 2/Regressions/Simple Linear Regression/Data/salary.csv")
+```
+
+## Introduction
+
+This analysis examines the relationship between employment (in years) 
+and salary using a simple linear regression model.
+
+## Correlation Coefficient
+
+```{r correlation}
+r <- cor(df$Employment..in.years., df$Salary)
+r
+```
+
+**Interpretation:** Employment and salary have a strong positive correlation (r = 0.824). This means that as years of employement increase, salary tends to increase. A value this close to 1 incidicates a strong linear relationship between the two variables.
+
+## Scatter Plot
+
+```{r scatterplot}
+plot(df$Employment..in.years., df$Salary,
+     main = "Employment (Years) vs Salary",
+     xlab = "Employment (in years)",
+     ylab = "Salary ($)",
+     pch = 16,
+     col = "steelblue")
+abline(lm(Salary ~ Employment..in.years., data = df), col = "red", lwd = 2)
+```
+
+**Interpretation:** The scatter plot shows a positive linear relationship between employement in years and salary. As employement increases, salary tends to increase. The data points follow a roughly linear trend, and the red regression line confirms this. 
+
+## Simple Linear Regression Model
+
+```{r model}
+model <- lm(Salary ~ Employment..in.years., data = df)
+summary(model)
+```
+
+### Significance of the Independent Variable
+
+**Interpretation:** The p value for employement in years is 0.0119, which is less than the significance level of 0.05. Therefore, employement in years is a statistically significant predictor of salary. We reject the null hypothesis that there is no correlation between the variables.
+
+### Significance of the Model
+
+**Interpretation:** The F statistic p-value is 0.0119, which indicates that the model is statistically significant.
+
+### R² and Adjusted R²
+
+**Interpretation:** The R^2 value of 0.6788 indicates that approximately 67.9% of the variation in salary is explained by employment in years. The adjusted R^2 of 0.6252 accounts for the number of predicors in the model and is a more conservative estimate. Both values suggest a moderately strong model fit.
+
+## Root Mean Square Error (RMSE)
+
+```{r rmse}
+rmse <- sqrt(mean(model$residuals^2))
+rmse
+```
+
+**Interpretation:**  The RMSE of approximately 1,288 represents the average difference between the observed salary values and the values predicted by the model. This means the model's predictions are off by about $1,288 on average, which is relatively small compared to the salary range in the dataset.
+
+## Conclusion
+
+This analysis found a strong positive linear relationship between employment in years and salary (r = 0.824). The simple linear regression model was statistically significant (p = 0.0119), with employment in years explaining approximately 67.9% of the variation in salary (R² = 0.6788). The regression equation is Salary = 55,152.98 + 316.77 × Employment, meaning salary increases by approximately 316.77 for each additional year of employment. With an RMSE of $1,288, the model demonstrates reasonable predictive accuracy.
